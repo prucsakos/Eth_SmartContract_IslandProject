@@ -4,7 +4,7 @@ import time
 
 def deploy_test(deploy, w1, w2, cap, price, nR, R, h):
     im = Island_Manager.deploy(
-        w1, w2, cap, price, nR, R, h, {"from": deploy}, publish_source=True
+        w1, w2, cap, price, nR, R, h, {"from": deploy}, publish_source=False
     )
     time.sleep(2)
     return im

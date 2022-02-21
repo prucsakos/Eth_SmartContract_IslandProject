@@ -3,7 +3,7 @@ const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
 
 // Path of the addresses
-const ADDRESSES_FILE_PATH = '../addresses4000';
+const ADDRESSES_FILE_PATH = './test_addresses/addresses4000';
 
 // Process the addresses. Read them into a list.
 const data = fs.readFileSync(ADDRESSES_FILE_PATH, 'utf-8');
@@ -19,7 +19,7 @@ console.log('RootHash\n', merkleTree.getRoot().toString('hex'))
 
 //SERVER SIDE:
 // Recieve an address, hash it and make a proof. Then return is to the client.
-const claimAddr = whitelistAddresses[0];
+const claimAddr = whitelistAddresses[1];
 const claimHashed = keccak256(claimAddr);
 const hexProof = merkleTree.getHexProof(claimHashed);
 

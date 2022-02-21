@@ -19,6 +19,11 @@ import "./ERC721A.sol";
 contract Island_Manager is ERC721A, ReentrancyGuard {
     using Strings for uint256;
     uint256 public constant decimals = 18;
+    uint256 public constant _whiteBatch = 2;
+    uint256 public constant _whiteMaxMint = 2;
+    uint256 public constant _publicBatch = 8;
+    uint256 public constant _publicMaxMint = 8;
+    uint256 public reservedForPrivileged = 10;
     uint256 public eth_mint_price;
     uint256 public maxNftCap;
     string private _notRevealedURL;
@@ -34,6 +39,9 @@ contract Island_Manager is ERC721A, ReentrancyGuard {
         Revealed
     }
     Stages private _currentStage = Stages.NotStarted;
+
+    mapping(address => uint256) private _whiteCapMap;
+    mapping(address => uint256) private _publicCapMap;
 
     // Constructor, 
     constructor(
@@ -65,35 +73,62 @@ contract Island_Manager is ERC721A, ReentrancyGuard {
 
     // Modifiers / Rights
     modifier developerOnly() {
-      require(msg.sender == _developer, "You are not a developer");
-      _;
-   }
-   modifier withdrawerOnly() {
-       require( (msg.sender == _whitdrawAddr[0]) || (msg.sender == _whitdrawAddr[1]), "You are not a withdrawer" );
-      _;
-   }
+        require(msg.sender == _developer, "You are not a developer");
+        _;
+    }
+    modifier withdrawerOnly() {
+        require( (msg.sender == _whitdrawAddr[0]) || (msg.sender == _whitdrawAddr[1]), "You are not a withdrawer" );
+        _;
+    }
+    modifier privilegedOnly() {
+        require( (msg.sender == _whitdrawAddr[0]) || 
+                 (msg.sender == _whitdrawAddr[1]) ||
+                 (msg.sender == _developer), 
+                 "You are not privileged." );
+        _;
+    }
    
 
 
     // MINTING FUNCTIONS
 
-    function PublicMint(uint quant) external payable {
+    function PublicMint(uint256 quant) external payable {
         require(_currentStage == Stages.PublicMint, "It is not the public mint stage.");
         require(msg.value >= eth_mint_price, "You don't have enough ETH");
+
+        // Mint config for public
+        require(quant <= _publicBatch);
+        require(_publicCapMap[msg.sender] + quant <= _publicMaxMint);
+
         require( _currentIndex + quant <= maxNftCap , "Maximum nft reached" );
+
         _safeMint(msg.sender, quant);
+        _publicCapMap[msg.sender] += quant;
     }
 
-    function WhitelistMint(uint quant, bytes32[] calldata _merkleProof ) external payable {
+    function WhitelistMint(uint256 quant, bytes32[] calldata _merkleProof ) external payable {       
         require(_currentStage == Stages.OnlyWhitelistMint, "Whitelist stage is over. Try public mint.");
         require(msg.value >= eth_mint_price, "You don't have enough ETH");
-        require( _currentIndex + quant <= maxNftCap , "Maximum nft reached" );
 
         //Check whitelisted members!
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
         require(MerkleProof.verify(_merkleProof, _merkleRootHash, leaf), "Invalid proof");
 
+        // Mint config for whitelisted members
+        require(quant <= _whiteBatch);
+        require(_whiteCapMap[msg.sender] + quant <= _whiteMaxMint);
+
+        require( _currentIndex + quant <= maxNftCap , "Maximum nft reached" );
+
         _safeMint(msg.sender, quant);
+        _whiteCapMap[msg.sender] += quant;
+    }
+
+    function OwnerMint(uint256 quant, address to) external privilegedOnly{
+        require(quant <= reservedForPrivileged);
+
+        _safeMint(to, quant);
+        reservedForPrivileged -= quant;
     }
 
     function tokenURI(uint256 tokenId)
@@ -153,11 +188,18 @@ contract Island_Manager is ERC721A, ReentrancyGuard {
 
     // DEVELOPER FUNCTIONS ONLY
 
-    function nextStage() public developerOnly() {
+    function goNextStage() public developerOnly() {
         require(_currentStage != Stages.Revealed);
         if (_currentStage == Stages.NotStarted) _currentStage = Stages.OnlyWhitelistMint;
         else if (_currentStage == Stages.OnlyWhitelistMint) _currentStage = Stages.PublicMint;
         else if (_currentStage == Stages.PublicMint) _currentStage = Stages.Revealed;
+    }
+
+    function goPreviousStage() public developerOnly() {
+        require(_currentStage != Stages.NotStarted);
+        if (_currentStage == Stages.Revealed) _currentStage = Stages.PublicMint;
+        else if (_currentStage == Stages.PublicMint) _currentStage = Stages.OnlyWhitelistMint;
+        else if (_currentStage == Stages.OnlyWhitelistMint) _currentStage = Stages.NotStarted;
     }
 
     // WITHDRAWER FUNCTIONS ONLY
@@ -173,14 +215,14 @@ contract Island_Manager is ERC721A, ReentrancyGuard {
 		require(success2, "Failed withdraw ");
 	}
 
-    function amIWithdrawal() external view returns(bool){
-        return msg.sender == _whitdrawAddr[0] || msg.sender == _whitdrawAddr[1];
+    function isAWithdrawal(address sender) external view returns(bool){
+        return sender == _whitdrawAddr[0] || sender == _whitdrawAddr[1];
     }
 
-    function amIOnWhitelist(bytes32[] calldata _merkleProof ) external view returns(bool){
+    function isOnWhitelist(address sender, bytes32[] calldata _merkleProof ) external view returns(bool){
 
         //Check whitelisted members!
-        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+        bytes32 leaf = keccak256(abi.encodePacked(sender));
         bool ret = MerkleProof.verify(_merkleProof, _merkleRootHash, leaf);
 
         return ret;
