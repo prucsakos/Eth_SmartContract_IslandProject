@@ -34,7 +34,7 @@ def main():
     w1 = "0x6fB4D4A45BF2774d47199C0Be9fe7984A3153C2E"
     w2 = "0xCb0c12dB788a140Ab5102F23fdAd916E7e47C613"
     nftMaxCap = 8888
-    eth = 100000000000000000  # 0.1 eth
+    eth = 10000000000000000  # 0.01 eth
     notRevealedUrl = "https://youtube.com/"
     revealedUrl = "https://facebook.com/"
     deploy_acc = accounts.add(config["wallets"]["riskby_from_key"])

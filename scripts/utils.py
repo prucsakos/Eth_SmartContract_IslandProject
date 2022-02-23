@@ -2,9 +2,9 @@ from brownie import Island_Manager, accounts, config, network
 import time
 
 
-def deploy_test(deploy, w1, w2, cap, price, nR, R, h):
+def deploy_test(deploy, w1, w2, cap, price, nR, R, h, verify=True):
     im = Island_Manager.deploy(
-        w1, w2, cap, price, nR, R, h, {"from": deploy}, publish_source=False
+        w1, w2, cap, price, nR, R, h, {"from": deploy}, publish_source=verify
     )
     time.sleep(2)
     return im

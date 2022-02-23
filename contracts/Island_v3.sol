@@ -18,7 +18,7 @@ import "./ERC721A.sol";
 
 contract Island_Manager is ERC721A, ReentrancyGuard {
     using Strings for uint256;
-    uint256 public constant decimals = 18;
+    // uint256 public constant decimals = 18;
     uint256 public constant _whiteBatch = 2;
     uint256 public constant _whiteMaxMint = 2;
     uint256 public constant _publicBatch = 8;
